@@ -11,7 +11,6 @@ typedef struct {
   size_t buf_len;
 
   uint32_t h[8];
-  uint32_t w[64];
 
   uint64_t num_bytes;
 } sha256_t;

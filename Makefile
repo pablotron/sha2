@@ -1,5 +1,5 @@
 CFLAGS=-W -Wall -Wextra -pedantic -O3 -std=c11
-OBJS=sha256.o main.o
+OBJS=sha256.o main.o tests.o
 APP=sha256
 
 .PHONY=all clean
@@ -16,4 +16,5 @@ clean:
 	$(RM) $(OBJS) $(APP)
 
 test: $(APP)
-	./$(APP) ''
+	@# ./$(APP) '' 'foobar'
+	@./$(APP)
