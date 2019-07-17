@@ -462,7 +462,7 @@ void sha512_init(sha512_t * const ctx) {
   w[i] = w16 + s0 + w7 + s1; \
 } while (0)
 
-// WC: compress word
+// WC64: compress word
 #define WC64(i) do { \
   const uint64_t s1 = rr64(hs[4], 14) ^ rr64(hs[4], 18) ^ rr64(hs[4], 41), \
                  ch = (hs[4] & hs[5]) ^ ((~(hs[4])) & hs[6]), \

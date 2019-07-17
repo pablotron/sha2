@@ -1,6 +1,10 @@
 #ifndef SHA2_H_
 #define SHA2_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
+
 #include <stdint.h> // uint32_t, uint8_t
 #include <stdlib.h> // size_t
 
@@ -58,5 +62,9 @@ void sha384_init(sha384_t * const);
 void sha384_push(sha384_t * const, const uint8_t *, size_t);
 void sha384_fini(sha384_t * const, uint8_t * const);
 void sha384(const uint8_t * const, const size_t, uint8_t * const);
+
+#ifdef __cplusplus
+};
+#endif /* __cplusplus */
 
 #endif /* SHA2_H_ */
