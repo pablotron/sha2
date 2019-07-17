@@ -1,4 +1,4 @@
-CFLAGS=-W -Wall -Wextra -pedantic -O3 -std=c11
+CFLAGS=-std=c11 -W -Wall -Wextra -pedantic -O3 -march=native
 OBJS=sha256.o main.o tests.o
 APP=sha256
 

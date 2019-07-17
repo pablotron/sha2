@@ -3,8 +3,6 @@
 #include "sha256.h"
 #include "tests.h"
 
-static uint8_t dst[SHA256_HASH_SIZE];
-
 static void print_hash(const uint8_t * const hash) {
   for (size_t i = 0; i < SHA256_HASH_SIZE; i++) {
     printf("%02x", hash[i]);
@@ -32,16 +30,34 @@ static void on_test_fail(
   printf("\n");
 }
 
+static uint8_t dst[SHA256_HASH_SIZE];
+static uint8_t buf[1 << 20];
+
 int main(int argc, char *argv[]) {
   if (argc > 1) {
-    // if command-line parameters are given, then hash and print them
-    // instead of running the test vectors
+    // if command-line parameters are given, then treat them as a
+    // list of files: open each file, hash it, and and print the
+    // result instead of running the test vectors
 
     for (int i = 1; i < argc; i++) {
-      const char * const src = argv[i];
+      sha256_t ctx;
+      sha256_init(&ctx);
 
-      sha256((const uint8_t *) src, strlen(src), dst);
-      print_row(src, dst);
+      FILE *fh = fopen(argv[i], "rb");
+      if (!fh) {
+        fprintf(stderr, "fopen(\"%s\") failed", argv[i]);
+        return 1;
+      }
+
+      size_t len = 0;
+      while ((len = fread(buf, 1, sizeof(buf), fh)) > 0) {
+        sha256_push(&ctx, buf, len);
+      }
+
+      fclose(fh);
+
+      sha256_fini(&ctx, dst);
+      print_row(argv[i], dst);
     }
   } else {
     // no command-line parameters given.  run internal tests

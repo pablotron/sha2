@@ -41,22 +41,50 @@ void sha256_init(sha256_t * const ctx) {
   memcpy(ctx->h, H, sizeof(H));
 }
 
-// decode buffer data as 32-bit words (used for the first 16 words)
-#define WI(ctx, i) ( \
-  (((uint32_t) (ctx)->buf[4 * (i) + 0]) << 24) | \
-  (((uint32_t) (ctx)->buf[4 * (i) + 1]) << 16) | \
-  (((uint32_t) (ctx)->buf[4 * (i) + 2]) << 8) | \
-  ((uint32_t) (ctx)->buf[4 * (i) + 3]) \
+// WI: decode buffer data as 32-bit words (used for the first 16 words)
+#define WI(i) ( \
+  (((uint32_t) ctx->buf[4 * (i) + 0]) << 24) | \
+  (((uint32_t) ctx->buf[4 * (i) + 1]) << 16) | \
+  (((uint32_t) ctx->buf[4 * (i) + 2]) << 8) | \
+  ((uint32_t) ctx->buf[4 * (i) + 3]) \
 )
+
+// WE: expand first 16 buffer words into remaining 48 words
+#define WE(i) do { \
+  const uint32_t w2 = w[(i) - 2], \
+                 w7 = w[(i) - 7], \
+                 w15 = w[(i) - 15], \
+                 w16 = w[(i) - 16], \
+                 s0 = rr(w15, 7) ^ rr(w15, 18) ^ (w15 >> 3), \
+                 s1 = rr(w2, 17) ^ rr(w2, 19) ^ (w2 >> 10); \
+  w[i] = w16 + s0 + w7 + s1; \
+} while (0)
+
+// WC: compress word
+#define WC(i) do { \
+  const uint32_t s1 = rr(hs[4], 6) ^ rr(hs[4], 11) ^ rr(hs[4], 25), \
+                 ch = (hs[4] & hs[5]) ^ ((~(hs[4])) & hs[6]), \
+                 t0 = hs[7] + s1 + ch + K[i] + w[i], \
+                 s0 = rr(hs[0], 2) ^ rr(hs[0], 13) ^ rr(hs[0], 22), \
+                 mj = (hs[0] & hs[1]) ^ (hs[0] & hs[2]) ^ (hs[1] & hs[2]), \
+                 t1 = s0 + mj; \
+\
+  hs[7] = hs[6]; \
+  hs[6] = hs[5]; \
+  hs[5] = hs[4]; \
+  hs[4] = hs[3] + t0; \
+  hs[3] = hs[2]; \
+  hs[2] = hs[1]; \
+  hs[1] = hs[0]; \
+  hs[0] = t0 + t1; \
+} while (0)
 
 static void
 sha256_block(sha256_t * const ctx) {
   // init first 16 words from buffer
   uint32_t w[64] = {
-    WI(ctx, 0), WI(ctx, 1), WI(ctx, 2), WI(ctx, 3),
-    WI(ctx, 4), WI(ctx, 5), WI(ctx, 6), WI(ctx, 7),
-    WI(ctx, 8), WI(ctx, 9), WI(ctx, 10), WI(ctx, 11),
-    WI(ctx, 12), WI(ctx, 13), WI(ctx, 14), WI(ctx, 15),
+    WI(0), WI(1), WI(2), WI(3), WI(4), WI(5), WI(6), WI(7),
+    WI(8), WI(9), WI(10), WI(11), WI(12), WI(13), WI(14), WI(15),
     0,
   };
 
@@ -67,14 +95,33 @@ sha256_block(sha256_t * const ctx) {
   //   s0 := (w[i-15] rr  7) xor (w[i-15] rr 18) xor (w[i-15] rs  3)
   //   s1 := (w[i- 2] rr 17) xor (w[i- 2] rr 19) xor (w[i- 2] rs 10)
   //   w[i] := w[i-16] + s0 + w[i-7] + s1
+  //
+  // for (size_t i = 16; i < 64; i++) {
+  //   const uint32_t w2 = w[i - 2],
+  //                  w7 = w[i - 7],
+  //                  w15 = w[i - 15],
+  //                  w16 = w[i - 16],
+  //                  s0 = rr(w15, 7) ^ rr(w15, 18) ^ (w15 >> 3),
+  //                  s1 = rr(w2, 17) ^ rr(w2, 19) ^ (w2 >> 10);
+  //   w[i] = w16 + s0 + w7 + s1;
+  // }
+  //
+  // // fully unrolled version:
+  // WE(24); WE(25); WE(26); WE(27); WE(28); WE(29); WE(30); WE(31);
+  // WE(32); WE(33); WE(34); WE(35); WE(36); WE(37); WE(38); WE(39);
+  // WE(40); WE(41); WE(42); WE(43); WE(44); WE(45); WE(46); WE(47);
+  // WE(48); WE(49); WE(50); WE(51); WE(52); WE(53); WE(54); WE(55);
+  // WE(56); WE(57); WE(58); WE(59); WE(60); WE(61); WE(62); WE(63);
+  //
+  // partially unrolled:
+  // for (size_t we_i = 16; we_i < 64; we_i += 16) {
+  //   WE(we_i + 0); WE(we_i + 1); WE(we_i + 2); WE(we_i + 3);
+  //   WE(we_i + 4); WE(we_i + 5); WE(we_i + 6); WE(we_i + 7);
+  //   WE(we_i + 8); WE(we_i + 9); WE(we_i + 10); WE(we_i + 11);
+  //   WE(we_i + 12); WE(we_i + 13); WE(we_i + 14); WE(we_i + 15);
+  // }
   for (size_t i = 16; i < 64; i++) {
-    const uint32_t w2 = w[i - 2],
-                   w7 = w[i - 7],
-                   w15 = w[i - 15],
-                   w16 = w[i - 16],
-                   s0 = rr(w15, 7) ^ rr(w15, 18) ^ (w15 >> 3),
-                   s1 = rr(w2, 17) ^ rr(w2, 19) ^ (w2 >> 10);
-    w[i] = w16 + s0 + w7 + s1;
+    WE(i);
   }
 
   // Initialize working variables to current hash value
@@ -101,22 +148,41 @@ sha256_block(sha256_t * const ctx) {
   //   c := b
   //   b := a
   //   a := temp1 + temp2
-  for (size_t i = 0; i < 64; i++) {
-    const uint32_t s1 = rr(hs[4], 6) ^ rr(hs[4], 11) ^ rr(hs[4], 25),
-                   ch = (hs[4] & hs[5]) ^ ((~(hs[4])) & hs[6]),
-                   t0 = hs[7] + s1 + ch + K[i] + w[i],
-                   s0 = rr(hs[0], 2) ^ rr(hs[0], 13) ^ rr(hs[0], 22),
-                   mj = (hs[0] & hs[1]) ^ (hs[0] & hs[2]) ^ (hs[1] & hs[2]),
-                   t1 = s0 + mj;
+  //
+  // for (size_t i = 0; i < 64; i++) {
+  //   const uint32_t s1 = rr(hs[4], 6) ^ rr(hs[4], 11) ^ rr(hs[4], 25),
+  //                  ch = (hs[4] & hs[5]) ^ ((~(hs[4])) & hs[6]),
+  //                  t0 = hs[7] + s1 + ch + K[i] + w[i],
+  //                  s0 = rr(hs[0], 2) ^ rr(hs[0], 13) ^ rr(hs[0], 22),
+  //                  mj = (hs[0] & hs[1]) ^ (hs[0] & hs[2]) ^ (hs[1] & hs[2]),
+  //                  t1 = s0 + mj;
 
-    hs[7] = hs[6];
-    hs[6] = hs[5];
-    hs[5] = hs[4];
-    hs[4] = hs[3] + t0;
-    hs[3] = hs[2];
-    hs[2] = hs[1];
-    hs[1] = hs[0];
-    hs[0] = t0 + t1;
+  //   hs[7] = hs[6];
+  //   hs[6] = hs[5];
+  //   hs[5] = hs[4];
+  //   hs[4] = hs[3] + t0;
+  //   hs[3] = hs[2];
+  //   hs[2] = hs[1];
+  //   hs[1] = hs[0];
+  //   hs[0] = t0 + t1;
+  // }
+  //
+  // // fully unrolled version:
+  // WC(0); WC(1); WC(2); WC(3); WC(4); WC(5); WC(6); WC(7);
+  // WC(8); WC(9); WC(10); WC(11); WC(12); WC(13); WC(14); WC(15);
+  // WC(16); WC(17); WC(18); WC(19); WC(20); WC(21); WC(22); WC(23);
+  // WC(24); WC(25); WC(26); WC(27); WC(28); WC(29); WC(30); WC(31);
+  // WC(32); WC(33); WC(34); WC(35); WC(36); WC(37); WC(38); WC(39);
+  // WC(40); WC(41); WC(42); WC(43); WC(44); WC(45); WC(46); WC(47);
+  // WC(48); WC(49); WC(50); WC(51); WC(52); WC(53); WC(54); WC(55);
+  // WC(56); WC(57); WC(58); WC(59); WC(60); WC(61); WC(62); WC(63);
+  //
+  // partially unrolled:
+  for (size_t i = 0; i < 64; i += 16) {
+    WC(i + 0); WC(i + 1); WC(i + 2); WC(i + 3);
+    WC(i + 4); WC(i + 5); WC(i + 6); WC(i + 7);
+    WC(i + 8); WC(i + 9); WC(i + 10); WC(i + 11);
+    WC(i + 12); WC(i + 13); WC(i + 14); WC(i + 15);
   }
 
   // Add the compressed chunk to the current hash value
@@ -131,22 +197,43 @@ sha256_block(sha256_t * const ctx) {
 }
 
 #undef WI
+#undef WE
+#undef WC
+
+#define MIN(a, b) (((a) < (b)) ? (a) : (b))
 
 void sha256_push(
   sha256_t * const ctx,
   const uint8_t * const src,
   const size_t src_len
 ) {
-  for (size_t i = 0; i < src_len; i++) {
-    ctx->buf[ctx->buf_len] = src[i];
-    ctx->buf_len++;
+  const size_t buf_left = 64 - ctx->buf_len;
 
-    if (ctx->buf_len == 64) {
+  if (src_len >= buf_left) {
+    // fill remaining buffer
+    memcpy(ctx->buf + ctx->buf_len, src, buf_left);
+    sha256_block(ctx);
+    ctx->buf_len = 0;
+
+    const size_t new_src_len = src_len - buf_left;
+    const size_t num_blocks = new_src_len / 64;
+
+    // process chunks
+    for (size_t i = 0; i < num_blocks; i++) {
+      memcpy(ctx->buf, src + buf_left + (64 * i), 64);
       sha256_block(ctx);
-      ctx->buf_len = 0;
     }
+
+    // copy remaining bytes to buffer
+    const size_t new_buf_len = (new_src_len - 64 * num_blocks);
+    memcpy(ctx->buf, src + buf_left + (64 * num_blocks), new_buf_len);
+    ctx->buf_len = new_buf_len;
+  } else {
+    memcpy(ctx->buf + ctx->buf_len, src, src_len);
+    ctx->buf_len += src_len;
   }
 
+  // update byte count
   ctx->num_bytes += src_len;
 }
 
@@ -191,17 +278,11 @@ void sha256_fini(
   const uint64_t num_bytes = ctx->num_bytes;
   const size_t pad_len = (65 - ((num_bytes + 1 + 8) % 64));
 
-  // fprintf(stderr, "ctx->num_bytes (before pad) = %lu\n", ctx->num_bytes);
-
   // push padding
   sha256_push(ctx, PADDING, pad_len);
 
-  // fprintf(stderr, "ctx->num_bytes (before len) = %lu\n", ctx->num_bytes);
-
   // push length (in bits)
   sha256_push_u64(ctx, num_bytes * 8);
-
-  // fprintf(stderr, "ctx->num_bytes (after len) = %lu\n", ctx->num_bytes);
 
   // extract hash
   const uint8_t hash[32] = {
