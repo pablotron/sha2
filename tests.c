@@ -2,6 +2,27 @@
 #include "sha256.h"
 #include "tests.h"
 
+#define DEF_TEST_FUNC(size) \
+  static const size_t NUM_SHA ## size ## _TESTS = \
+    (sizeof(SHA ## size ## _TESTS) / sizeof(SHA ## size ## _TESTS[0])); \
+  \
+  static unsigned int \
+  run_sha ## size ## _tests(test_fail_cb_t on_fail) { \
+    unsigned int r = 0; \
+    uint8_t hash[SHA ## size ## _HASH_SIZE]; \
+  \
+    for (size_t i = 0; i < NUM_SHA ## size ## _TESTS; i++) { \
+      const char * const s = SHA224_TESTS[i].s; \
+      sha ## size((const uint8_t *) s, strlen(s), hash); \
+      if (memcmp(hash, SHA ## size ## _TESTS[i].h, sizeof(hash))) { \
+        on_fail(size, s, hash, SHA ## size ## _TESTS[i].h); \
+        r++; \
+      } \
+    } \
+  \
+    return r; \
+  }
+
 static const struct {
   const char * const s;
   const uint8_t h[SHA256_HASH_SIZE];
@@ -30,25 +51,6 @@ static const struct {
     0xf6, 0xec, 0xed, 0xd4, 0x19, 0xdb, 0x06, 0xc1,
   },
 }};
-
-#define NUM_SHA256_TESTS (sizeof(SHA256_TESTS) / sizeof(SHA256_TESTS[0]))
-
-static unsigned int
-run_sha256_tests(test_fail_cb_t on_fail) {
-  unsigned int r = 0;
-  uint8_t hash[SHA256_HASH_SIZE];
-
-  for (size_t i = 0; i < NUM_SHA256_TESTS; i++) {
-    const char * const s = SHA256_TESTS[i].s;
-    sha256((const uint8_t *) s, strlen(s), hash);
-    if (memcmp(hash, SHA256_TESTS[i].h, sizeof(hash))) {
-      on_fail(256, s, hash, SHA256_TESTS[i].h);
-      r++;
-    }
-  }
-
-  return r;
-}
 
 static const struct {
   const char * const s;
@@ -79,24 +81,8 @@ static const struct {
   },
 }};
 
-#define NUM_SHA224_TESTS (sizeof(SHA224_TESTS) / sizeof(SHA224_TESTS[0]))
-
-static unsigned int
-run_sha224_tests(test_fail_cb_t on_fail) {
-  unsigned int r = 0;
-  uint8_t hash[SHA224_HASH_SIZE];
-
-  for (size_t i = 0; i < NUM_SHA224_TESTS; i++) {
-    const char * const s = SHA224_TESTS[i].s;
-    sha224((const uint8_t *) s, strlen(s), hash);
-    if (memcmp(hash, SHA224_TESTS[i].h, sizeof(hash))) {
-      on_fail(224, s, hash, SHA224_TESTS[i].h);
-      r++;
-    }
-  }
-
-  return r;
-}
+DEF_TEST_FUNC(256)
+DEF_TEST_FUNC(224)
 
 unsigned int run_tests(test_fail_cb_t on_fail) {
   unsigned int r = 0;
