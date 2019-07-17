@@ -1,4 +1,4 @@
-#include "sha256.h"
+#include "sha2.h"
 #include <string.h> // memcpy
 
 // extract bytes from uint32_t

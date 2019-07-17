@@ -1,5 +1,5 @@
 CFLAGS=-std=c11 -W -Wall -Wextra -pedantic -O3 -march=native
-OBJS=sha256.o main.o tests.o
+OBJS=sha2.o main.o tests.o
 APP=sha256
 
 .PHONY=all clean

@@ -1,5 +1,5 @@
 #include <string.h> // memcmp()
-#include "sha256.h"
+#include "sha2.h"
 #include "tests.h"
 
 #define DEF_TEST_FUNC(size) \

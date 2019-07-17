@@ -1,6 +1,6 @@
 #include <stdio.h> // printf()
 #include <string.h> // strlen()
-#include "sha256.h"
+#include "sha2.h"
 #include "tests.h"
 
 static void print_hash(const uint8_t * const hash) {
@@ -32,7 +32,7 @@ static void on_test_fail(
 }
 
 static uint8_t dst[SHA256_HASH_SIZE];
-static uint8_t buf[1 << 20];
+static uint8_t buf[1 << 21];
 
 int main(int argc, char *argv[]) {
   if (argc > 1) {
