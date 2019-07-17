@@ -20,4 +20,15 @@ void sha256_push(sha256_t * const, const uint8_t *, size_t);
 void sha256_fini(sha256_t * const, uint8_t * const);
 void sha256(const uint8_t * const, const size_t, uint8_t * const);
 
+#define SHA224_HASH_SIZE 28
+
+typedef struct {
+  sha256_t ctx;
+} sha224_t;
+
+void sha224_init(sha224_t * const);
+void sha224_push(sha224_t * const, const uint8_t *, size_t);
+void sha224_fini(sha224_t * const, uint8_t * const);
+void sha224(const uint8_t * const, const size_t, uint8_t * const);
+
 #endif /* SHA2_H_ */

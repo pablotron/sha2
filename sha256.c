@@ -1,10 +1,18 @@
 #include "sha256.h"
 #include <string.h> // memcpy
 
-// initial hash values
+// extract bytes from uint32_t
+// (used in sha256_fini() and sha224_fini())
+#define WB(ctx, i)  \
+    ((ctx)->h[i] >> 24) & 0xff, \
+    ((ctx)->h[i] >> 16) & 0xff, \
+    ((ctx)->h[i] >> 8) & 0xff,  \
+    ((ctx)->h[i]) & 0xff
+
+// sha256 initial hash values
 // (first 32 bits of the fractional parts of the square roots of the
 // first 8 primes 2..19):
-static const uint32_t H[8] = {
+static const uint32_t SHA256_INIT[8] = {
   0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
   0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19,
 };
@@ -38,7 +46,7 @@ rr(const uint32_t v, const size_t n) {
 void sha256_init(sha256_t * const ctx) {
   ctx->buf_len = 0;
   ctx->num_bytes = 0;
-  memcpy(ctx->h, H, sizeof(H));
+  memcpy(ctx->h, SHA256_INIT, sizeof(SHA256_INIT));
 }
 
 // WI: decode buffer data as 32-bit words (used for the first 16 words)
@@ -139,7 +147,7 @@ sha256_block(sha256_t * const ctx) {
   //   S0 := (a rightrotate 2) xor (a rightrotate 13) xor (a rightrotate 22)
   //   maj := (a and b) xor (a and c) xor (b and c)
   //   temp2 := S0 + maj
-  // 
+  //
   //   h := g
   //   g := f
   //   f := e
@@ -242,7 +250,7 @@ sha256_push_u64(
   sha256_t * const ctx,
   const uint64_t val
 ) {
-  const uint8_t buf[8] = { 
+  const uint8_t buf[8] = {
     ((val >> 56) & 0xff),
     ((val >> 48) & 0xff),
     ((val >> 40) & 0xff),
@@ -258,22 +266,16 @@ sha256_push_u64(
 
 // end of stream padding
 static const uint8_t PADDING[65] = {
-  128, 
+  128,
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 };
 
-#define WB(ctx, i)  \
-    ((ctx)->h[i] >> 24) & 0xff, \
-    ((ctx)->h[i] >> 16) & 0xff, \
-    ((ctx)->h[i] >> 8) & 0xff,  \
-    ((ctx)->h[i]) & 0xff
-
-void sha256_fini(
-  sha256_t * const ctx,
-  uint8_t * const out
+static void
+sha256_push_footer(
+  sha256_t * const ctx
 ) {
   const uint64_t num_bytes = ctx->num_bytes;
   const size_t pad_len = (65 - ((num_bytes + 1 + 8) % 64));
@@ -283,6 +285,14 @@ void sha256_fini(
 
   // push length (in bits)
   sha256_push_u64(ctx, num_bytes * 8);
+}
+
+void sha256_fini(
+  sha256_t * const ctx,
+  uint8_t * const out
+) {
+  // push footer
+  sha256_push_footer(ctx);
 
   // extract hash
   const uint8_t hash[32] = {
@@ -293,8 +303,6 @@ void sha256_fini(
   memcpy(out, hash, sizeof(hash));
 }
 
-#undef WB
-
 void sha256(
   const uint8_t * const src,
   const size_t src_len,
@@ -304,4 +312,56 @@ void sha256(
   sha256_init(&ctx);
   sha256_push(&ctx, src, src_len);
   sha256_fini(&ctx, dst);
+}
+
+// sha224 initial hash values
+// (the second 32 bits of the fractional parts of the square roots of
+// the 9th through 16th primes 23..53)
+static const uint32_t SHA224_INIT[8] = {
+  0xc1059ed8, 0x367cd507, 0x3070dd17, 0xf70e5939,
+  0xffc00b31, 0x68581511, 0x64f98fa7, 0xbefa4fa4
+};
+
+void sha224_init(sha224_t * const ctx) {
+  ctx->ctx.buf_len = 0;
+  ctx->ctx.num_bytes = 0;
+  memcpy(ctx->ctx.h, SHA224_INIT, sizeof(SHA224_INIT));
+}
+
+void sha224_push(
+  sha224_t * const sha224_ctx,
+  const uint8_t * const src,
+  const size_t src_len
+) {
+  sha256_t * const ctx = (sha256_t * const) sha224_ctx;
+  sha256_push(ctx, src, src_len);
+}
+
+void sha224_fini(
+  sha224_t * const sha224_ctx,
+  uint8_t * const out
+) {
+  sha256_t * const ctx = (sha256_t * const) sha224_ctx;
+
+  // push footer
+  sha256_push_footer(ctx);
+
+  // extract hash
+  const uint8_t hash[28] = {
+    WB(ctx, 0), WB(ctx, 1), WB(ctx, 2), WB(ctx, 3),
+    WB(ctx, 4), WB(ctx, 5), WB(ctx, 6),
+  };
+
+  memcpy(out, hash, sizeof(hash));
+}
+
+void sha224(
+  const uint8_t * const src,
+  const size_t src_len,
+  uint8_t * const dst
+) {
+  sha224_t ctx;
+  sha224_init(&ctx);
+  sha224_push(&ctx, src, src_len);
+  sha224_fini(&ctx, dst);
 }

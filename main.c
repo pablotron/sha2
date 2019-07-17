@@ -19,11 +19,12 @@ static void print_row(
 }
 
 static void on_test_fail(
+  const int algo,
   const char * const src,
   const uint8_t * const got_hash,
   const uint8_t * const expected_hash
 ) {
-  printf("\"%s\",", src);
+  printf("sha%d,\"%s\",", algo, src);
   print_hash(got_hash);
   printf(",");
   print_hash(expected_hash);
@@ -61,7 +62,7 @@ int main(int argc, char *argv[]) {
     }
   } else {
     // no command-line parameters given.  run internal tests
-    printf("input,result,expected\n");
+    printf("algo,input,result,expected\n");
     run_tests(on_test_fail);
   }
 
