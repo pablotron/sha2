@@ -12,10 +12,7 @@ extern "C" {
 
 typedef struct {
   uint8_t buf[64];
-  size_t buf_len;
-
   uint32_t h[8];
-
   uint64_t num_bytes;
 } sha256_t;
 
@@ -40,10 +37,7 @@ void sha224(const uint8_t * const, const size_t, uint8_t * const);
 
 typedef struct {
   uint8_t buf[128];
-  size_t buf_len;
-
   uint64_t h[8];
-
   uint64_t num_bytes;
 } sha512_t;
 

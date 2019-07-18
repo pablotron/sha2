@@ -59,7 +59,6 @@ rr64(const uint64_t v, const size_t n) {
 #endif /* 0 */
 
 void sha256_init(sha256_t * const ctx) {
-  ctx->buf_len = 0;
   ctx->num_bytes = 0;
   memcpy(ctx->h, SHA256_INIT, sizeof(SHA256_INIT));
 }
@@ -228,13 +227,13 @@ void sha256_push(
   const uint8_t * const src,
   const size_t src_len
 ) {
-  const size_t buf_left = 64 - ctx->buf_len;
+  const size_t buf_len = ctx->num_bytes % 64;
+  const size_t buf_left = 64 - buf_len;
 
   if (src_len >= buf_left) {
     // fill remaining buffer
-    memcpy(ctx->buf + ctx->buf_len, src, buf_left);
+    memcpy(ctx->buf + buf_len, src, buf_left);
     sha256_block(ctx);
-    ctx->buf_len = 0;
 
     const size_t new_src_len = src_len - buf_left;
     const size_t num_blocks = new_src_len / 64;
@@ -248,10 +247,8 @@ void sha256_push(
     // copy remaining bytes to buffer
     const size_t new_buf_len = (new_src_len - 64 * num_blocks);
     memcpy(ctx->buf, src + buf_left + (64 * num_blocks), new_buf_len);
-    ctx->buf_len = new_buf_len;
   } else {
-    memcpy(ctx->buf + ctx->buf_len, src, src_len);
-    ctx->buf_len += src_len;
+    memcpy(ctx->buf + buf_len, src, src_len);
   }
 
   // update byte count
@@ -336,7 +333,6 @@ static const uint32_t SHA224_INIT[8] = {
 };
 
 void sha224_init(sha224_t * const ctx) {
-  ctx->ctx.buf_len = 0;
   ctx->ctx.num_bytes = 0;
   memcpy(ctx->ctx.h, SHA224_INIT, sizeof(SHA224_INIT));
 }
@@ -434,7 +430,6 @@ static const uint64_t K512[80] = {
 };
 
 void sha512_init(sha512_t * const ctx) {
-  ctx->buf_len = 0;
   ctx->num_bytes = 0;
   memcpy(ctx->h, SHA512_INIT, sizeof(SHA512_INIT));
 }
@@ -534,13 +529,13 @@ void sha512_push(
   const uint8_t * const src,
   const size_t src_len
 ) {
-  const size_t buf_left = 128 - ctx->buf_len;
+  const size_t buf_len = ctx->num_bytes % 128;
+  const size_t buf_left = 128 - buf_len;
 
   if (src_len >= buf_left) {
     // fill remaining buffer
-    memcpy(ctx->buf + ctx->buf_len, src, buf_left);
+    memcpy(ctx->buf + buf_len, src, buf_left);
     sha512_block(ctx);
-    ctx->buf_len = 0;
 
     const size_t new_src_len = src_len - buf_left;
     const size_t num_blocks = new_src_len / 128;
@@ -554,10 +549,8 @@ void sha512_push(
     // copy remaining bytes to buffer
     const size_t new_buf_len = (new_src_len - 128 * num_blocks);
     memcpy(ctx->buf, src + buf_left + (128 * num_blocks), new_buf_len);
-    ctx->buf_len = new_buf_len;
   } else {
-    memcpy(ctx->buf + ctx->buf_len, src, src_len);
-    ctx->buf_len += src_len;
+    memcpy(ctx->buf + buf_len, src, src_len);
   }
 
   // update byte count
@@ -656,7 +649,6 @@ static const uint64_t SHA384_INIT[8] = {
 };
 
 void sha384_init(sha384_t * const ctx) {
-  ctx->ctx.buf_len = 0;
   ctx->ctx.num_bytes = 0;
   memcpy(ctx->ctx.h, SHA384_INIT, sizeof(SHA384_INIT));
 }
