@@ -43,20 +43,12 @@ rr32(const uint32_t v, const size_t n) {
   return (v << (32 - n)) | (v >> n);
 }
 
-#if 0
-#define rr32(v, n) (((v) << (32 - (n))) | ((v) >> (n)))
-#endif /* 0 */
-
 // rotate right (uint64_t)
 // (src: https://blog.regehr.org/archives/1063)
 static inline uint64_t
 rr64(const uint64_t v, const size_t n) {
   return (v << (64 - n)) | (v >> n);
 }
-
-#if 0
-#define rr64(v, n) (((v) << (64 - (n))) | ((v) >> (n)))
-#endif /* 0 */
 
 void sha256_init(sha256_t * const ctx) {
   ctx->num_bytes = 0;
@@ -224,9 +216,10 @@ sha256_block(sha256_t * const ctx) {
 
 void sha256_push(
   sha256_t * const ctx,
-  const uint8_t * const src,
+  const void * const src_ptr,
   const size_t src_len
 ) {
+  const uint8_t * const src = src_ptr;
   const size_t buf_len = ctx->num_bytes % 64;
   const size_t buf_left = 64 - buf_len;
 
@@ -258,17 +251,11 @@ void sha256_push(
 static void
 sha256_push_u64(
   sha256_t * const ctx,
-  const uint64_t val
+  const uint64_t v
 ) {
   const uint8_t buf[8] = {
-    ((val >> 56) & 0xff),
-    ((val >> 48) & 0xff),
-    ((val >> 40) & 0xff),
-    ((val >> 32) & 0xff),
-    ((val >> 24) & 0xff),
-    ((val >> 16) & 0xff),
-    ((val >> 8) & 0xff),
-    ((val) & 0xff),
+    (v >> 56) & 0xff, (v >> 48) & 0xff, (v >> 40) & 0xff, (v >> 32) & 0xff,
+    (v >> 24) & 0xff, (v >> 16) & 0xff, (v >> 8) & 0xff, (v) & 0xff,
   };
 
   sha256_push(ctx, buf, sizeof(buf));
@@ -299,7 +286,7 @@ sha256_push_footer(
 
 void sha256_fini(
   sha256_t * const ctx,
-  uint8_t * const out
+  void * const out
 ) {
   // push footer
   sha256_push_footer(ctx);
@@ -314,9 +301,9 @@ void sha256_fini(
 }
 
 void sha256(
-  const uint8_t * const src,
+  const void * const restrict src,
   const size_t src_len,
-  uint8_t * const dst
+  void * const restrict dst
 ) {
   sha256_t ctx;
   sha256_init(&ctx);
@@ -339,7 +326,7 @@ void sha224_init(sha224_t * const ctx) {
 
 void sha224_push(
   sha224_t * const sha224_ctx,
-  const uint8_t * const src,
+  const void * const src,
   const size_t src_len
 ) {
   sha256_t * const ctx = (sha256_t * const) sha224_ctx;
@@ -348,7 +335,7 @@ void sha224_push(
 
 void sha224_fini(
   sha224_t * const sha224_ctx,
-  uint8_t * const out
+  void * const out
 ) {
   sha256_t * const ctx = (sha256_t * const) sha224_ctx;
 
@@ -365,9 +352,9 @@ void sha224_fini(
 }
 
 void sha224(
-  const uint8_t * const src,
+  const void * const restrict src,
   const size_t src_len,
-  uint8_t * const dst
+  void * const restrict dst
 ) {
   sha224_t ctx;
   sha224_init(&ctx);
@@ -430,7 +417,8 @@ static const uint64_t K512[80] = {
 };
 
 void sha512_init(sha512_t * const ctx) {
-  ctx->num_bytes = 0;
+  ctx->num_bytes_lo = 0;
+  ctx->num_bytes_hi = 0;
   memcpy(ctx->h, SHA512_INIT, sizeof(SHA512_INIT));
 }
 
@@ -526,10 +514,11 @@ sha512_block(sha512_t * const ctx) {
 
 void sha512_push(
   sha512_t * const ctx,
-  const uint8_t * const src,
+  const void * const src_ptr,
   const size_t src_len
 ) {
-  const size_t buf_len = ctx->num_bytes % 128;
+  const uint8_t * const src = src_ptr;
+  const size_t buf_len = ctx->num_bytes_lo % 128;
   const size_t buf_left = 128 - buf_len;
 
   if (src_len >= buf_left) {
@@ -554,7 +543,10 @@ void sha512_push(
   }
 
   // update byte count
-  ctx->num_bytes += src_len;
+  const uint64_t old_lo = ctx->num_bytes_lo,
+                 new_lo = old_lo + src_len;
+  ctx->num_bytes_lo = new_lo;
+  ctx->num_bytes_hi += (new_lo < old_lo) ? 1 : 0;
 }
 
 static void
@@ -564,22 +556,10 @@ sha512_push_u128(
   const uint64_t lo
 ) {
   const uint8_t buf[16] = {
-    ((hi >> 56) & 0xff),
-    ((hi >> 48) & 0xff),
-    ((hi >> 40) & 0xff),
-    ((hi >> 32) & 0xff),
-    ((hi >> 24) & 0xff),
-    ((hi >> 16) & 0xff),
-    ((hi >> 8) & 0xff),
-    ((hi) & 0xff),
-    ((lo >> 56) & 0xff),
-    ((lo >> 48) & 0xff),
-    ((lo >> 40) & 0xff),
-    ((lo >> 32) & 0xff),
-    ((lo >> 24) & 0xff),
-    ((lo >> 16) & 0xff),
-    ((lo >> 8) & 0xff),
-    ((lo) & 0xff),
+    (hi >> 56) & 0xff, (hi >> 48) & 0xff, (hi >> 40) & 0xff, (hi >> 32) & 0xff,
+    (hi >> 24) & 0xff, (hi >> 16) & 0xff, (hi >> 8) & 0xff,  (hi) & 0xff,
+    (lo >> 56) & 0xff, (lo >> 48) & 0xff, (lo >> 40) & 0xff, (lo >> 32) & 0xff,
+    (lo >> 24) & 0xff, (lo >> 16) & 0xff, (lo >> 8) & 0xff,  (lo) & 0xff,
   };
 
   sha512_push(ctx, buf, sizeof(buf));
@@ -602,19 +582,20 @@ static void
 sha512_push_footer(
   sha512_t * const ctx
 ) {
-  const uint64_t num_bytes = ctx->num_bytes;
-  const size_t pad_len = (129 - ((num_bytes + 1 + 16) % 128));
+  const uint64_t lo = ctx->num_bytes_lo,
+                 hi = ctx->num_bytes_hi;
+  const size_t pad_len = (129 - ((lo + 1 + 16) % 128));
 
   // push padding
   sha512_push(ctx, SHA512_PADDING, pad_len);
 
   // push length (in bits)
-  sha512_push_u128(ctx, 0, num_bytes * 8);
+  sha512_push_u128(ctx, hi * 8, lo * 8);
 }
 
 void sha512_fini(
   sha512_t * const ctx,
-  uint8_t * const out
+  void * const out
 ) {
   // push footer
   sha512_push_footer(ctx);
@@ -629,9 +610,9 @@ void sha512_fini(
 }
 
 void sha512(
-  const uint8_t * const src,
+  const void * const restrict src,
   const size_t src_len,
-  uint8_t * const dst
+  void * const restrict dst
 ) {
   sha512_t ctx;
   sha512_init(&ctx);
@@ -649,13 +630,14 @@ static const uint64_t SHA384_INIT[8] = {
 };
 
 void sha384_init(sha384_t * const ctx) {
-  ctx->ctx.num_bytes = 0;
+  ctx->ctx.num_bytes_lo = 0;
+  ctx->ctx.num_bytes_hi = 0;
   memcpy(ctx->ctx.h, SHA384_INIT, sizeof(SHA384_INIT));
 }
 
 void sha384_push(
   sha384_t * const sha384_ctx,
-  const uint8_t * const src,
+  const void * const src,
   const size_t src_len
 ) {
   sha512_t * const ctx = (sha512_t * const) sha384_ctx;
@@ -664,7 +646,7 @@ void sha384_push(
 
 void sha384_fini(
   sha384_t * const sha384_ctx,
-  uint8_t * const out
+  void * const out
 ) {
   sha512_t * const ctx = (sha512_t * const) sha384_ctx;
 
@@ -681,9 +663,9 @@ void sha384_fini(
 }
 
 void sha384(
-  const uint8_t * const src,
+  const void * const src,
   const size_t src_len,
-  uint8_t * const dst
+  void * restrict const dst
 ) {
   sha384_t ctx;
   sha384_init(&ctx);

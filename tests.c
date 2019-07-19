@@ -260,12 +260,12 @@ static const struct {
         sha ## size ## _init(&ctx); \
   \
         for (size_t j = 0; j < SHA ## size ## _TESTS[i].n; j++) { \
-          sha ## size ## _push(&ctx, (const uint8_t *) s, l); \
+          sha ## size ## _push(&ctx, s, l); \
         } \
   \
         sha ## size ## _fini(&ctx, hash); \
       } else { \
-        sha ## size((const uint8_t *) s, strlen(s), hash); \
+        sha ## size(s, strlen(s), hash); \
       } \
   \
       if (memcmp(hash, SHA ## size ## _TESTS[i].h, sizeof(hash))) { \
