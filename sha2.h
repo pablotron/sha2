@@ -17,8 +17,8 @@ typedef struct {
 } sha256_t;
 
 void sha256_init(sha256_t * const);
-void sha256_push(sha256_t * const, const void *, size_t);
-void sha256_fini(sha256_t * const, void * const);
+void sha256_push(sha256_t * const restrict, const void * const restrict, const size_t);
+void sha256_fini(sha256_t * const restrict, void * const restrict);
 void sha256(const void * const restrict, const size_t, void * const restrict);
 
 #define SHA224_HASH_SIZE 28
@@ -28,8 +28,8 @@ typedef struct {
 } sha224_t;
 
 void sha224_init(sha224_t * const);
-void sha224_push(sha224_t * const, const void *, size_t);
-void sha224_fini(sha224_t * const, void * const);
+void sha224_push(sha224_t * const restrict, const void * const restrict, const size_t);
+void sha224_fini(sha224_t * const restrict, void * const restrict);
 void sha224(const void * const restrict, const size_t, void * const restrict);
 
 
@@ -43,8 +43,8 @@ typedef struct {
 } sha512_t;
 
 void sha512_init(sha512_t * const);
-void sha512_push(sha512_t * const, const void *, size_t);
-void sha512_fini(sha512_t * const, void * const);
+void sha512_push(sha512_t * const restrict, const void * restrict, const size_t);
+void sha512_fini(sha512_t * const restrict, void * const restrict);
 void sha512(const void * const restrict, const size_t, void * const restrict);
 
 #define SHA384_HASH_SIZE 48
@@ -54,9 +54,9 @@ typedef struct {
 } sha384_t;
 
 void sha384_init(sha384_t * const);
-void sha384_push(sha384_t * const, const void *, size_t);
-void sha384_fini(sha384_t * const, void * const);
-void sha384(const void * const restrict, const size_t, void * restrict const);
+void sha384_push(sha384_t * const restrict, const void * const restrict, const size_t);
+void sha384_fini(sha384_t * const restrict, void * const restrict);
+void sha384(const void * const restrict, const size_t, void * const restrict);
 
 #ifdef __cplusplus
 };

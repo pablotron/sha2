@@ -215,8 +215,8 @@ sha256_block(sha256_t * const ctx) {
 #undef WC
 
 void sha256_push(
-  sha256_t * const ctx,
-  const void * const src_ptr,
+  sha256_t * const restrict ctx,
+  const void * const restrict src_ptr,
   const size_t src_len
 ) {
   const uint8_t * const src = src_ptr;
@@ -285,8 +285,8 @@ sha256_push_footer(
 }
 
 void sha256_fini(
-  sha256_t * const ctx,
-  void * const out
+  sha256_t * const restrict ctx,
+  void * const restrict out
 ) {
   // push footer
   sha256_push_footer(ctx);
@@ -325,8 +325,8 @@ void sha224_init(sha224_t * const ctx) {
 }
 
 void sha224_push(
-  sha224_t * const sha224_ctx,
-  const void * const src,
+  sha224_t * const restrict sha224_ctx,
+  const void * const restrict src,
   const size_t src_len
 ) {
   sha256_t * const ctx = (sha256_t * const) sha224_ctx;
@@ -513,8 +513,8 @@ sha512_block(sha512_t * const ctx) {
 #undef WC64
 
 void sha512_push(
-  sha512_t * const ctx,
-  const void * const src_ptr,
+  sha512_t * const restrict ctx,
+  const void * const restrict src_ptr,
   const size_t src_len
 ) {
   const uint8_t * const src = src_ptr;
@@ -594,8 +594,8 @@ sha512_push_footer(
 }
 
 void sha512_fini(
-  sha512_t * const ctx,
-  void * const out
+  sha512_t * const restrict ctx,
+  void * const restrict out
 ) {
   // push footer
   sha512_push_footer(ctx);
@@ -636,8 +636,8 @@ void sha384_init(sha384_t * const ctx) {
 }
 
 void sha384_push(
-  sha384_t * const sha384_ctx,
-  const void * const src,
+  sha384_t * const restrict sha384_ctx,
+  const void * const restrict src,
   const size_t src_len
 ) {
   sha512_t * const ctx = (sha512_t * const) sha384_ctx;
@@ -645,8 +645,8 @@ void sha384_push(
 }
 
 void sha384_fini(
-  sha384_t * const sha384_ctx,
-  void * const out
+  sha384_t * const restrict sha384_ctx,
+  void * const restrict out
 ) {
   sha512_t * const ctx = (sha512_t * const) sha384_ctx;
 
@@ -663,9 +663,9 @@ void sha384_fini(
 }
 
 void sha384(
-  const void * const src,
+  const void * const restrict src,
   const size_t src_len,
-  void * restrict const dst
+  void * const restrict dst
 ) {
   sha384_t ctx;
   sha384_init(&ctx);
