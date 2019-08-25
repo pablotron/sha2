@@ -1,4 +1,4 @@
-Self-contained C11 SHA-2 implementation.
+Self-contained [C11][] [SHA-2][] implementation.
 
 Includes implementations of the following:
 * SHA-224
@@ -12,9 +12,11 @@ See `tests.c` for usage.
 
 Benchmarks
 ==========
-Benchmarks.  Partially unrolled compression makes this implementation
-faster than [coreutils][], but slower than the [assembly-optimized,
-family-specific OpenSSL SHA-2 implementation][openssl-asm-sha].
+Benchmarks.
+
+Partially unrolled compression makes this implementation faster than
+[coreutils][], but slower than the [assembly-optimized, family-specific
+OpenSSL SHA-2 implementation][openssl-asm-sha].
 
 ```
 > time -p ./sha256 ~/Videos/8x*avi > /dev/null
@@ -31,7 +33,7 @@ user 6.01
 sys 0.32
 ```
 
-  [sha2]: https://en.wikipedia.org/wiki/SHA-2 "Secure Hash Algorithm 2"
+  [sha-2]: https://en.wikipedia.org/wiki/SHA-2 "Secure Hash Algorithm 2"
   [c11]: https://en.wikipedia.org/wiki/C11_(C_standard_revision) "C11 standard of the C programming language"
   [coreutils]: https://www.gnu.org/software/coreutils/ "GNU core utilities"
   [openssl-asm-sha]: https://github.com/openssl/openssl/tree/master/crypto/sha/asm "assembly-optimized OpenSSL SHA-2 implementation."
